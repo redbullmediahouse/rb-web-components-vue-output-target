@@ -35,6 +35,18 @@
     "@stencil/core": ">=1.8.0",
     "vue": "^3.0.0"
   },
+  "devDependencies": {
+    "@stencil/core": "^1.17.3",
+    "@types/jest": "^26.0.9",
+    "jest": "^26.3.0",
+    "lerna-changelog": "^1.0.1",
+    "np": "^6.0.2",
+    "prettier": "^2.0.5",
+    "rimraf": "^2.6.3",
+    "rollup": "^2.23.1",
+    "ts-jest": "^26.2.0",
+    "typescript": "^3.9.7"
+  },
   "jest": {
     "transform": {
       "^.+\\.(js|ts|tsx)$": "<rootDir>/test/jest.preprocessor.js"
