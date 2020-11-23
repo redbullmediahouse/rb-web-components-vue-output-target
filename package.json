@@ -14,10 +14,10 @@
   },
   "scripts": {
     "prebuild": "rimraf ./dist",
-    "build": "tsc && npm run rollup",
+    "build": "tsc && yarn rollup",
     "watch": "tsc --watch",
     "rollup": "rollup -c",
-    "version": "npm run build",
+    "version": "yarn build",
     "release": "np",
     "test": "jest"
   },
