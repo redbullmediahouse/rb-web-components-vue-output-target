@@ -48,6 +48,7 @@ const getElementClasses = (
 export const defineContainer = <Props>(
   name: string,
   componentProps: string[] = [],
+  componentEvents: string[] = [],
   componentOptions: ComponentOptions = {},
 ) => {
   const { modelProp, modelUpdateEvent, routerLinkComponent } = componentOptions;
@@ -63,9 +64,18 @@ export const defineContainer = <Props>(
     const onVnodeBeforeMount = (vnode: VNode) => {
       // Add a listener to tell Vue to update the v-model
       if (vnode.el) {
-        vnode.el.addEventListener(modelUpdateEvent.toLowerCase(), (e: Event) => {
-          emit(UPDATE_VALUE_EVENT, (e?.target as any)[modelProp]);
-        });
+        if(modelUpdateEvent) {
+          vnode.el.addEventListener(modelUpdateEvent.toLowerCase(), (e: Event) => {
+            emit(UPDATE_VALUE_EVENT, (e?.target as any)[modelProp]);
+          });
+        }
+        if(componentEvents) {
+          componentEvents.forEach(eventName => {
+            vnode.el.addEventListener(eventName, (e: CustomEvent) => {
+              emit(eventName, e);
+            });
+          })
+        }
       }
     };
 
@@ -94,7 +104,7 @@ export const defineContainer = <Props>(
         ref: containerRef,
         class: getElementClasses(containerRef, classes),
         onClick: routerLinkComponent ? handleClick : (props as any).onClick,
-        onVnodeBeforeMount: modelUpdateEvent ? onVnodeBeforeMount : undefined,
+        onVnodeBeforeMount: onVnodeBeforeMount,
       };
 
       if ((props as any).onClick) {
@@ -120,9 +130,10 @@ export const defineContainer = <Props>(
 
   Container.displayName = name;
   Container.props = componentProps;
+  Container.emits = componentEvents;
   if (modelProp) {
     Container.props.push(MODEL_VALUE);
-    Container.emits = [UPDATE_VALUE_EVENT];
+    Container.emits.push(UPDATE_VALUE_EVENT);
   }
   if (routerLinkComponent) {
     Container.props.push(ROUTER_LINK_VALUE);
