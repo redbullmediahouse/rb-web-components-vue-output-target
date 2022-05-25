@@ -128,6 +128,9 @@ export const defineContainer = <Props>(
     };
   });
 
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  Container.name = name;
   Container.displayName = name;
   Container.props = componentProps;
   Container.emits = componentEvents;
