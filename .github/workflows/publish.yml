@@ -1,0 +1,32 @@
+name: 'Publish package'
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release-package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Use Node.js
+        uses: actions/setup-node@v2
+        with:
+          cache: npm
+          node-version: 14.x
+
+      - name: Clean install dependencies
+        run: |
+          npm install
+
+      - name: Prepare for private registry
+        run: |
+          rm -f .npmrc
+          curl -u s-rbmh-bld-webcomponents:${{ secrets.ARTIFACTORY_API_KEY }} https://artifactory.redbullmediahouse.com/api/npm/auth > .npmrc 
+          echo "registry=https://artifactory.redbullmediahouse.com/artifactory/api/npm/rb-web-components/" >> .npmrc
+
+      - name: Publish package
+        run: |
+          npm publish
