@@ -19,8 +19,7 @@
     "rollup": "rollup -c",
     "version": "yarn build",
     "release": "np",
-    "test": "jest",
-    "install": "yarn build"
+    "test": "jest"
   },
   "repository": {
     "type": "git",
