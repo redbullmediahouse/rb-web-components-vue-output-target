@@ -14,7 +14,7 @@
   },
   "scripts": {
     "prebuild": "rimraf ./dist",
-    "build": "tsc && yarn rollup",
+    "build": "tsc && npm run rollup",
     "watch": "tsc --watch",
     "rollup": "rollup -c",
     "version": "yarn build",
@@ -46,7 +46,7 @@
     "rimraf": "^2.6.3",
     "rollup": "^2.23.1",
     "ts-jest": "^26.2.0",
-    "typescript": "^3.9.7"
+    "typescript": "^4.6.3"
   },
   "jest": {
     "transform": {
