@@ -1,43 +1,43 @@
-import { Config } from '@stencil/core/internal';
-import { OutputTargetVue } from '../src/types';
-import { normalizeOutputTarget } from '../src/plugin';
+import { Config } from "@stencil/core/internal";
+import { OutputTargetVue } from "../src/types";
+import { normalizeOutputTarget } from "../src/plugin";
 
-describe('normalizeOutputTarget', () => {
+describe("normalizeOutputTarget", () => {
   const config: Config = {
-    rootDir: '/dev/',
+    rootDir: "/dev/",
   };
 
-  it('should return fail if proxiesFile is not set', () => {
+  it("should return fail if proxiesFile is not set", () => {
     expect(() => {
       normalizeOutputTarget({}, {});
-    }).toThrow(new Error('rootDir is not set and it should be set by stencil itself'));
+    }).toThrow(
+      new Error("rootDir is not set and it should be set by stencil itself")
+    );
   });
 
-  it('should return fail if proxiesFile is not set', () => {
+  it("should return fail if proxiesFile is not set", () => {
     expect(() => {
       normalizeOutputTarget(config, {});
-    }).toThrow(new Error('proxiesFile is required'));
+    }).toThrow(new Error("proxiesFile is required"));
   });
 
-  it('should return defaults for excludedComponents, includePolyfills, includeDefineCustomElements, routerLinkComponents, and vetur', () => {
+  it("should return defaults for excludedComponents, includePolyfills, and includeDefineCustomElements", () => {
     const results: OutputTargetVue = normalizeOutputTarget(config, {
-      proxiesFile: '../component-library-vue/src/components.ts',
+      proxiesFile: "../component-library-vue/src/components.ts",
     });
 
     expect(results).toEqual({
-      proxiesFile: '../component-library-vue/src/components.ts',
+      proxiesFile: "../component-library-vue/src/components.ts",
       excludeComponents: [],
       componentModels: [],
       includePolyfills: true,
       includeDefineCustomElements: true,
-      routerLinkComponents: [],
-      vetur: false
     } as OutputTargetVue);
   });
 
-  it('Polyfills and DefinCustomElements should be false when set that way', () => {
+  it("Polyfills and DefinCustomElements should be false when set that way", () => {
     const results: OutputTargetVue = normalizeOutputTarget(config, {
-      proxiesFile: '../component-library-vue/src/components.ts',
+      proxiesFile: "../component-library-vue/src/components.ts",
       includePolyfills: false,
       includeDefineCustomElements: false,
     });
@@ -46,9 +46,9 @@ describe('normalizeOutputTarget', () => {
     expect(results.includeDefineCustomElements).toEqual(false);
   });
 
-  it('Polyfills and DefinCustomElements should be true when set that way', () => {
+  it("Polyfills and DefinCustomElements should be true when set that way", () => {
     const results: OutputTargetVue = normalizeOutputTarget(config, {
-      proxiesFile: '../component-library-vue/src/components.ts',
+      proxiesFile: "../component-library-vue/src/components.ts",
       includePolyfills: true,
       includeDefineCustomElements: true,
     });

@@ -6,23 +6,15 @@ export interface OutputTargetVue {
   loaderDir?: string;
   includePolyfills?: boolean;
   includeDefineCustomElements?: boolean;
-  routerLinkComponents?: string[];
-  vetur?: boolean;
-  docsFile?: string;
-  veturTagsFile?: string;
-  veturAttributesFile?: string;
-}
-
-export interface ComponentOptions {
-  modelProp?: string;
-  modelUpdateEvent?: string;
-  routerLinkComponent?: boolean;
+  includeImportCustomElements?: boolean;
+  customElementsDir?: string;
 }
 
 export interface ComponentModelConfig {
   elements: string | string[];
   event: string;
   targetAttr: string;
+  externalEvent?: string;
 }
 
 export interface PackageJSON {
