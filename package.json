@@ -1,6 +1,6 @@
 {
   "name": "@rbmh-design-system/vue-output-target",
-  "version": "0.1.10",
+  "version": "0.8.5",
   "description": "Vue output target for @stencil/core components.",
   "main": "dist/index.cjs.js",
   "module": "dist/index.js",
@@ -13,11 +13,15 @@
     "access": "public"
   },
   "scripts": {
+    "prepublishOnly": "npm run build",
     "prebuild": "rimraf ./dist",
     "build": "tsc && npm run rollup",
     "watch": "tsc --watch",
     "rollup": "rollup -c",
-    "version": "yarn build",
+    "version": "npm run build",
+    "prettier": "npm run prettier.base -- --write",
+    "prettier.base": "prettier \"./({vue-component-lib,src,test,__tests__}/**/*.{ts,tsx,js,jsx})|*.{ts,tsx,js,jsx}\"",
+    "prettier.dry-run": "npm run prettier.base -- --list-different",
     "release": "np",
     "test": "jest"
   },
@@ -32,21 +36,22 @@
     "url": "https://github.com/ionic-team/stencil-ds-output-targets/issues"
   },
   "peerDependencies": {
-    "@stencil/core": ">=1.8.0",
-    "vue": "^3.0.0"
+    "@stencil/core": ">=2.0.0 || >=3 || >= 4.0.0-beta.0 || >= 4.0.0"
   },
   "devDependencies": {
-    "@stencil/core": "2.2.0",
-    "vue": "2.2.0",
+    "@ionic/prettier-config": "^2.0.0",
+    "@stencil/core": "^3.0.0",
     "@types/jest": "^26.0.9",
     "jest": "^26.3.0",
+    "lerna": "^4.0.0",
     "lerna-changelog": "^1.0.1",
     "np": "^6.0.2",
-    "prettier": "^2.0.5",
-    "rimraf": "^2.6.3",
+    "prettier": "2.7.1",
+    "rimraf": "^4.2.0",
     "rollup": "^2.23.1",
+    "semver": "^5.5.0",
     "ts-jest": "^26.2.0",
-    "typescript": "^4.6.3"
+    "typescript": "^3.9.7"
   },
   "jest": {
     "transform": {
@@ -62,5 +67,8 @@
     ],
     "testURL": "http://localhost"
   },
-  "gitHead": "a3588e905186a0e86e7f88418fd5b2f9531b55e0"
+  "gitHead": "a3588e905186a0e86e7f88418fd5b2f9531b55e0",
+  "volta": {
+    "extends": "../../package.json"
+  }
 }

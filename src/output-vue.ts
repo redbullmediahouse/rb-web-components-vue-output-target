@@ -1,73 +1,54 @@
-import path from 'path';
-import type { OutputTargetVue, PackageJSON } from './types';
+import path from "path";
+import type { OutputTargetVue, PackageJSON } from "./types";
 import type {
   CompilerCtx,
   ComponentCompilerMeta,
   Config,
   OutputTargetDist,
-} from '@stencil/core/internal';
-import { createComponentDefinition } from './generate-vue-component';
-import { normalizePath, readPackageJson, relativeImport, sortBy } from './utils';
+} from "@stencil/core/internal";
+import { createComponentDefinition } from "./generate-vue-component";
+import {
+  normalizePath,
+  readPackageJson,
+  relativeImport,
+  sortBy,
+  dashToPascalCase,
+} from "./utils";
 
 export async function vueProxyOutput(
   config: Config,
   compilerCtx: CompilerCtx,
   outputTarget: OutputTargetVue,
-  components: ComponentCompilerMeta[],
+  components: ComponentCompilerMeta[]
 ) {
-  const filteredComponents = getFilteredComponents(outputTarget.excludeComponents, components);
+  const filteredComponents = getFilteredComponents(
+    outputTarget.excludeComponents,
+    components
+  );
   const rootDir = config.rootDir as string;
   const pkgData = await readPackageJson(rootDir);
 
-  const finalText = generateProxies(config, filteredComponents, pkgData, outputTarget, rootDir);
+  const finalText = generateProxies(
+    config,
+    filteredComponents,
+    pkgData,
+    outputTarget,
+    rootDir
+  );
   await compilerCtx.fs.writeFile(outputTarget.proxiesFile, finalText);
-
-  if (outputTarget.vetur) {
-    const docsJson = await compilerCtx.fs.readFile(outputTarget.docsFile!);
-    const { veturTags, veturAttributes } = generateVetur(JSON.parse(docsJson), filteredComponents);
-
-    await Promise.all([
-      compilerCtx.fs.writeFile(outputTarget.veturTagsFile!, JSON.stringify(veturTags, null, 2)),
-      compilerCtx.fs.writeFile(outputTarget.veturAttributesFile!, JSON.stringify(veturAttributes, null, 2))
-    ]);
-  }
-
   await copyResources(config, outputTarget);
 }
 
-// TODO types
-export function generateVetur(
-  docsJson: any,
-  components: ComponentCompilerMeta[]
+function getFilteredComponents(
+  excludeComponents: string[] = [],
+  cmps: ComponentCompilerMeta[]
 ) {
-  const tagsObject: any = {};
-  const attributesObject: any = {};
-  docsJson.components.forEach((component: any) => {
-    const shouldIncludeComponent = components.find(cmp => cmp.tagName === component.tag);
-    if (shouldIncludeComponent) {
-      tagsObject[component.tag] = {
-        description: component.docs,
-        attributes: component.props.map((prop: any) => prop.name)
-      }
-
-      component.props.forEach((prop: any) => {
-        attributesObject[`${component.tag}/${prop.name}`] = {
-          type: prop.type,
-          description: prop.docs
-        }
-      });
-    }
-  });
-
-  return {
-    veturTags: tagsObject,
-    veturAttributes: attributesObject
-  }
-}
-
-function getFilteredComponents(excludeComponents: string[] = [], cmps: ComponentCompilerMeta[]) {
-  return sortBy<ComponentCompilerMeta>(cmps, (cmp: ComponentCompilerMeta) => cmp.tagName).filter(
-    (c: ComponentCompilerMeta) => !excludeComponents.includes(c.tagName) && !c.internal,
+  return sortBy<ComponentCompilerMeta>(
+    cmps,
+    (cmp: ComponentCompilerMeta) => cmp.tagName
+  ).filter(
+    (c: ComponentCompilerMeta) =>
+      !excludeComponents.includes(c.tagName) && !c.internal
   );
 }
 
@@ -76,31 +57,70 @@ export function generateProxies(
   components: ComponentCompilerMeta[],
   pkgData: PackageJSON,
   outputTarget: OutputTargetVue,
-  rootDir: string,
+  rootDir: string
 ) {
   const distTypesDir = path.dirname(pkgData.types);
   const dtsFilePath = path.join(rootDir, distTypesDir, GENERATED_DTS);
-  const componentsTypeFile = relativeImport(outputTarget.proxiesFile, dtsFilePath, '.d.ts');
-  const pathToCorePackageLoader = getPathToCorePackageLoader(config, outputTarget);
+  const componentsTypeFile = relativeImport(
+    outputTarget.proxiesFile,
+    dtsFilePath,
+    ".d.ts"
+  );
+  const pathToCorePackageLoader = getPathToCorePackageLoader(
+    config,
+    outputTarget
+  );
 
   const imports = `/* eslint-disable */
 /* tslint:disable */
 /* auto-generated vue proxies */
 import { defineContainer } from './vue-component-lib/utils';\n`;
 
-  const typeImports = !outputTarget.componentCorePackage
-    ? `import type { ${IMPORT_TYPES} } from '${normalizePath(componentsTypeFile)}';\n`
-    : `import type { ${IMPORT_TYPES} } from '${normalizePath(
-        outputTarget.componentCorePackage,
-      )}';\n`;
+  const generateTypeImports = () => {
+    if (outputTarget.componentCorePackage !== undefined) {
+      const dirPath = outputTarget.includeImportCustomElements
+        ? `/${outputTarget.customElementsDir || "components"}`
+        : "";
+      return `import type { ${IMPORT_TYPES} } from '${normalizePath(
+        outputTarget.componentCorePackage
+      )}${dirPath}';\n`;
+    }
 
-  let sourceImports = '';
-  let registerCustomElements = '';
+    return `import type { ${IMPORT_TYPES} } from '${normalizePath(
+      componentsTypeFile
+    )}';\n`;
+  };
 
-  if (outputTarget.includePolyfills && outputTarget.includeDefineCustomElements) {
+  const typeImports = generateTypeImports();
+
+  let sourceImports = "";
+  let registerCustomElements = "";
+
+  if (
+    outputTarget.includeImportCustomElements &&
+    outputTarget.componentCorePackage !== undefined
+  ) {
+    const cmpImports = components.map((component) => {
+      const pascalImport = dashToPascalCase(component.tagName);
+
+      return `import { defineCustomElement as define${pascalImport} } from '${normalizePath(
+        outputTarget.componentCorePackage!
+      )}/${outputTarget.customElementsDir || "components"}/${
+        component.tagName
+      }.js';`;
+    });
+
+    sourceImports = cmpImports.join("\n");
+  } else if (
+    outputTarget.includePolyfills &&
+    outputTarget.includeDefineCustomElements
+  ) {
     sourceImports = `import { ${APPLY_POLYFILLS}, ${REGISTER_CUSTOM_ELEMENTS} } from '${pathToCorePackageLoader}';\n`;
     registerCustomElements = `${APPLY_POLYFILLS}().then(() => ${REGISTER_CUSTOM_ELEMENTS}());`;
-  } else if (!outputTarget.includePolyfills && outputTarget.includeDefineCustomElements) {
+  } else if (
+    !outputTarget.includePolyfills &&
+    outputTarget.includeDefineCustomElements
+  ) {
     sourceImports = `import { ${REGISTER_CUSTOM_ELEMENTS} } from '${pathToCorePackageLoader}';\n`;
     registerCustomElements = `${REGISTER_CUSTOM_ELEMENTS}();`;
   }
@@ -111,19 +131,30 @@ import { defineContainer } from './vue-component-lib/utils';\n`;
     sourceImports,
     registerCustomElements,
     components
-      .map(createComponentDefinition(IMPORT_TYPES, outputTarget.componentModels, outputTarget.routerLinkComponents))
-      .join('\n'),
+      .map(
+        createComponentDefinition(
+          IMPORT_TYPES,
+          outputTarget.componentModels,
+          outputTarget.includeImportCustomElements
+        )
+      )
+      .join("\n"),
   ];
 
-  return final.join('\n') + '\n';
+  return final.join("\n") + "\n";
 }
 
 async function copyResources(config: Config, outputTarget: OutputTargetVue) {
   if (!config.sys || !config.sys.copy || !config.sys.glob) {
-    throw new Error('stencil is not properly initialized at this step. Notify the developer');
+    throw new Error(
+      "stencil is not properly initialized at this step. Notify the developer"
+    );
   }
-  const srcDirectory = path.join(__dirname, '..', 'vue-component-lib');
-  const destDirectory = path.join(path.dirname(outputTarget.proxiesFile), 'vue-component-lib');
+  const srcDirectory = path.join(__dirname, "..", "vue-component-lib");
+  const destDirectory = path.join(
+    path.dirname(outputTarget.proxiesFile),
+    "vue-component-lib"
+  );
 
   return config.sys.copy(
     [
@@ -134,16 +165,22 @@ async function copyResources(config: Config, outputTarget: OutputTargetVue) {
         warn: false,
       },
     ],
-    srcDirectory,
+    srcDirectory
   );
 }
 
-export function getPathToCorePackageLoader(config: Config, outputTarget: OutputTargetVue) {
-  const basePkg = outputTarget.componentCorePackage || '';
-  const distOutputTarget = config.outputTargets?.find((o) => o.type === 'dist') as OutputTargetDist;
+export function getPathToCorePackageLoader(
+  config: Config,
+  outputTarget: OutputTargetVue
+) {
+  const basePkg = outputTarget.componentCorePackage || "";
+  const distOutputTarget = config.outputTargets?.find(
+    (o) => o.type === "dist"
+  ) as OutputTargetDist;
 
   const distAbsEsmLoaderPath =
-    distOutputTarget?.esmLoaderPath && path.isAbsolute(distOutputTarget.esmLoaderPath)
+    distOutputTarget?.esmLoaderPath &&
+    path.isAbsolute(distOutputTarget.esmLoaderPath)
       ? distOutputTarget.esmLoaderPath
       : null;
 
@@ -152,12 +189,13 @@ export function getPathToCorePackageLoader(config: Config, outputTarget: OutputT
       ? path.relative(config.rootDir, distAbsEsmLoaderPath)
       : null;
 
-  const loaderDir = outputTarget.loaderDir || distRelEsmLoaderPath || DEFAULT_LOADER_DIR;
+  const loaderDir =
+    outputTarget.loaderDir || distRelEsmLoaderPath || DEFAULT_LOADER_DIR;
   return normalizePath(path.join(basePkg, loaderDir));
 }
 
-export const GENERATED_DTS = 'components.d.ts';
-const IMPORT_TYPES = 'JSX';
-const REGISTER_CUSTOM_ELEMENTS = 'defineCustomElements';
-const APPLY_POLYFILLS = 'applyPolyfills';
-const DEFAULT_LOADER_DIR = '/dist/loader';
+export const GENERATED_DTS = "components.d.ts";
+const IMPORT_TYPES = "JSX";
+const REGISTER_CUSTOM_ELEMENTS = "defineCustomElements";
+const APPLY_POLYFILLS = "applyPolyfills";
+const DEFAULT_LOADER_DIR = "/dist/loader";
